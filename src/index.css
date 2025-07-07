@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes fade-in-slow {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in-slow {
+  animation: fade-in-slow 1.5s ease-in;
+}
+
+.section-spacing {
+  margin-top: 4rem;
+  margin-bottom: 4rem;
+}
+
+.card-hover {
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+
+.card-hover:hover {
+  box-shadow: 0 8px 32px 0 rgba(80, 80, 200, 0.15);
+  border-color: #6366f1;
+}
