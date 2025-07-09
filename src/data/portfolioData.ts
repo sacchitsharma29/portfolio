@@ -102,9 +102,10 @@ export const portfolioData = {
       title: "DevOps-Powered Flask API Web App",
       description: "Dockerized Flask API with multiple endpoints and automated Jenkins CI/CD pipeline for seamless deployment and scaling.",
       techStack: ["Python", "Flask", "Docker", "Jenkins", "CI/CD"],
-      githubUrl: "https://github.com/sacchit-sharma",
+      githubUrl: "https://github.com/sacchitsharma29/devops-project1",
       liveUrl: "https://demo.example.com",
-      image: "https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=600"
+      image: "https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=600",
+      category: "DevOps"
     },
     {
       id: 2,
@@ -113,7 +114,8 @@ export const portfolioData = {
       techStack: ["Python", "Gradio", "OpenAI API", "Google Gemini", "NLP"],
       githubUrl: "https://github.com/sacchitsharma29/legal-ai-advisor",
       liveUrl: "https://huggingface.co/spaces/sacchitsharma/legal-ai-advisor",
-      image: "https://images.pexels.com/photos/5668773/pexels-photo-5668773.jpeg?auto=compress&cs=tinysrgb&w=600"
+      image: "https://images.pexels.com/photos/5668773/pexels-photo-5668773.jpeg?auto=compress&cs=tinysrgb&w=600",
+      category: "AI-Utility"
     },
     {
       id: 3,
@@ -122,7 +124,8 @@ export const portfolioData = {
       techStack: ["Python", "Streamlit", "Docker", "System Admin", "Real-time"],
       githubUrl: "https://github.com/sacchit-sharma",
       liveUrl: "https://demo.example.com",
-      image: "https://images.pexels.com/photos/1181675/pexels-photo-1181675.jpeg?auto=compress&cs=tinysrgb&w=600"
+      image: "https://images.pexels.com/photos/1181675/pexels-photo-1181675.jpeg?auto=compress&cs=tinysrgb&w=600",
+      category: "DevOps"
     },
     {
       id: 4,
@@ -131,7 +134,8 @@ export const portfolioData = {
       techStack: ["Python", "Web Scraping", "APIs", "Automation", "UI/UX"],
       githubUrl: "https://github.com/sacchit-sharma",
       liveUrl: "https://demo.example.com",
-      image: "https://images.pexels.com/photos/196644/pexels-photo-196644.jpeg?auto=compress&cs=tinysrgb&w=600"
+      image: "https://images.pexels.com/photos/196644/pexels-photo-196644.jpeg?auto=compress&cs=tinysrgb&w=600",
+      category: "Python"
     }
   ],
 

@@ -51,7 +51,7 @@ function App() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center">
                 <p className="text-gray-400">
-                  © 2024 Sacchit Sharma. Built with React, TypeScript, and Tailwind CSS.
+                  © 2025 Sacchit Sharma. All rights reserved.
                 </p>
               </div>
             </div>
