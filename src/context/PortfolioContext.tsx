@@ -295,8 +295,15 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (event.storageArea !== window.localStorage || event.key !== STORAGE_KEY || !event.newValue) {
         return;
       }
-
-      setData(normalizeData(JSON.parse(event.newValue)));
+      try {
+        // Prevent treating this as a local edit that should be immediately written back
+        isHydratingFromRemoteRef.current = true;
+        const parsed = normalizeData(JSON.parse(event.newValue));
+        console.log('Storage event: hydrating from other tab/localStorage', parsed);
+        setData(parsed);
+      } finally {
+        // leave flag set; the next effect cycle will clear it after handling
+      }
     };
 
     window.addEventListener('storage', handleStorage);
