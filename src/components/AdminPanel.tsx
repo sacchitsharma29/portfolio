@@ -183,12 +183,6 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   const saveChanges = () => {
     setData(cloneData(draft));
     setNotice('Changes saved. Refresh the public site if it is open in another tab.');
-    try {
-      window.localStorage.removeItem('PORTFOLIO_HAS_UNSAVED_CHANGES');
-    } catch (e) {
-      // non-fatal: localStorage may be unavailable in some environments
-      console.warn('Could not clear unsaved flag in localStorage', e);
-    }
   };
 
   const exportJson = () => {

@@ -272,11 +272,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.log('🔥 Writing to Firestore:', {
         route: window.location.pathname,
         authenticated: !!auth?.currentUser,
-        templateId: data.contact.emailjsTemplateId
+        templateId: data.contact.emailjsTemplateId,
+        sanitizedPreview: sanitized
       });
-      setDoc(docRef, sanitized, { merge: true }).catch((error) => {
-        console.error('Failed to sync portfolio data to Firestore:', error);
-      });
+
+      setDoc(docRef, sanitized, { merge: true })
+        .then(() => {
+          try {
+            window.localStorage.removeItem('PORTFOLIO_HAS_UNSAVED_CHANGES');
+          } catch (e) {
+            console.warn('Could not clear unsaved flag after successful write', e);
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to sync portfolio data to Firestore:', error, { sanitized });
+        });
     }
   }, [canWriteRemote, data]);
 
