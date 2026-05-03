@@ -109,7 +109,22 @@ const Field: React.FC<FieldProps> = ({
             const file = event.target.files?.[0];
             event.target.value = '';
             if (!file) return;
-            onChange(await toDataUrl(file));
+            if (!storage) {
+              // Fallback: use data URL locally
+              onChange(await toDataUrl(file));
+              return;
+            }
+            try {
+              const timestamp = Date.now();
+              const storageRef = ref(storage, `images/certifications/${timestamp}-${file.name}`);
+              await uploadBytes(storageRef, file);
+              const downloadUrl = await getDownloadURL(storageRef);
+              onChange(downloadUrl);
+            } catch (err) {
+              console.error('Image upload failed:', err);
+              // Fallback to data URL
+              onChange(await toDataUrl(file));
+            }
           }}
         />
       </label>

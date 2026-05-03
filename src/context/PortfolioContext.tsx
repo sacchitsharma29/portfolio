@@ -32,14 +32,11 @@ const sanitizeForFirestore = (data: PortfolioData): Record<string, unknown> => {
     if (typeof obj === 'object') {
       const result: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
-            // Skip image URLs and large binary content (data URLs starting with 'data:')
-            if (
-              key === 'imageUrl' ||
-              (typeof value === 'string' && value.startsWith('data:'))
-            ) {
+            // Skip large binary content (data URLs starting with 'data:')
+            if (typeof value === 'string' && value.startsWith('data:')) {
               continue;
             }
-            // Skip resumeFileDataUrl only if it's a data URL (old format), allow Firebase Storage URLs
+            // Skip resumeFileDataUrl only if it's a data URL (old format); allow hosted URLs
             if (
               key === 'resumeFileDataUrl' &&
               typeof value === 'string' &&
