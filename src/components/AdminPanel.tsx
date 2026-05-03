@@ -120,10 +120,19 @@ const Field: React.FC<FieldProps> = ({
               await uploadBytes(storageRef, file);
               const downloadUrl = await getDownloadURL(storageRef);
               onChange(downloadUrl);
+              console.log('✅ Certificate image uploaded to Firebase Storage:', downloadUrl);
             } catch (err) {
-              console.error('Image upload failed:', err);
-              // Fallback to data URL
-              onChange(await toDataUrl(file));
+              console.error('❌ Certificate image upload failed:', err);
+              window.alert(`⚠️ Image upload failed: ${err instanceof Error ? err.message : 'Unknown error'}. Trying local fallback...`);
+              try {
+                // Fallback to data URL
+                const dataUrl = await toDataUrl(file);
+                onChange(dataUrl);
+                console.log('⚠️ Using local data URL (will not persist to Firestore)');
+              } catch (fallbackErr) {
+                console.error('❌ Fallback also failed:', fallbackErr);
+                window.alert('❌ Failed to process image. Please try again.');
+              }
             }
           }}
         />
