@@ -110,7 +110,8 @@ const Field: React.FC<FieldProps> = ({
             event.target.value = '';
             if (!file) return;
             if (!storage) {
-              // Fallback: use data URL locally
+              window.alert('Firebase Storage is not configured in this deployment. Check Vercel env vars and redeploy.');
+              // Fallback: use data URL locally for preview only (won\'t sync to Firestore)
               onChange(await toDataUrl(file));
               return;
             }
@@ -393,7 +394,11 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                       onChange={async (event) => {
                         const file = event.target.files?.[0];
                         event.target.value = '';
-                        if (!file || !storage) return;
+                        if (!file) return;
+                        if (!storage) {
+                          window.alert('Firebase Storage is not configured in this deployment. Check Vercel env vars and redeploy.');
+                          return;
+                        }
 
                         try {
                           const timestamp = Date.now();
