@@ -202,10 +202,27 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       (snapshot) => {
         if (!snapshot.exists()) return;
 
+        // If the admin has unsaved changes in this tab, don't overwrite their draft
+        if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
+          try {
+            if (window.localStorage.getItem('PORTFOLIO_HAS_UNSAVED_CHANGES')) {
+              return;
+            }
+          } catch (e) {
+            // non-fatal: localStorage may be unavailable; log and continue
+            // eslint-disable-next-line no-console
+            console.warn('Could not read unsaved flag from localStorage', e);
+          }
+        }
+
         const remoteData = normalizeData(snapshot.data() as Partial<PortfolioData>);
         isHydratingFromRemoteRef.current = true;
         setData(remoteData);
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(remoteData));
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(remoteData));
+        } catch (e) {
+          console.warn('Could not persist remote data to localStorage', e);
+        }
       },
       (error) => {
         console.error('Realtime Firestore sync failed:', error);
