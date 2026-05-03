@@ -115,6 +115,10 @@ const Field: React.FC<FieldProps> = ({
               onChange(await toDataUrl(file));
               return;
             }
+            if (!auth?.currentUser) {
+              window.alert('You are not authenticated. Please log in again on /admin, then retry upload.');
+              return;
+            }
             try {
               const timestamp = Date.now();
               const storageRef = ref(storage, `images/certifications/${timestamp}-${file.name}`);
@@ -122,18 +126,24 @@ const Field: React.FC<FieldProps> = ({
               const downloadUrl = await getDownloadURL(storageRef);
               onChange(downloadUrl);
               console.log('✅ Certificate image uploaded to Firebase Storage:', downloadUrl);
+              window.alert('Certificate image uploaded successfully. Click Save Changes to publish it.');
             } catch (err) {
-              console.error('❌ Certificate image upload failed:', err);
-              window.alert(`⚠️ Image upload failed: ${err instanceof Error ? err.message : 'Unknown error'}. Trying local fallback...`);
-              try {
-                // Fallback to data URL
-                const dataUrl = await toDataUrl(file);
-                onChange(dataUrl);
-                console.log('⚠️ Using local data URL (will not persist to Firestore)');
-              } catch (fallbackErr) {
-                console.error('❌ Fallback also failed:', fallbackErr);
-                window.alert('❌ Failed to process image. Please try again.');
-              }
+              const error = err as { code?: string; message?: string };
+              console.error('Certificate image upload failed:', {
+                code: error?.code,
+                message: error?.message,
+                uid: auth?.currentUser?.uid || null,
+                storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || null,
+              });
+
+              const hint =
+                error?.code === 'storage/unauthorized'
+                  ? 'Storage rules denied access. Check Firebase Storage rules and owner UID.'
+                  : error?.code === 'storage/invalid-default-bucket'
+                    ? 'Invalid storage bucket in Vercel env var VITE_FIREBASE_STORAGE_BUCKET.'
+                    : 'Please check browser console for details.';
+
+              window.alert(`Failed to upload certificate image: ${error?.code || 'unknown_error'}. ${hint}`);
             }
           }}
         />
@@ -399,6 +409,10 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                           window.alert('Firebase Storage is not configured in this deployment. Check Vercel env vars and redeploy.');
                           return;
                         }
+                        if (!auth?.currentUser) {
+                          window.alert('You are not authenticated. Please log in again on /admin, then retry upload.');
+                          return;
+                        }
 
                         try {
                           const timestamp = Date.now();
@@ -410,9 +424,24 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                             draft.personal.resumeFileName = file.name;
                             draft.personal.resumeFileDataUrl = downloadUrl;
                           });
+                          window.alert('Resume uploaded successfully. Click Save Changes to publish it.');
                         } catch (error) {
-                          console.error('Resume upload failed:', error);
-                          window.alert('Failed to upload resume. Please try again.');
+                          const err = error as { code?: string; message?: string };
+                          console.error('Resume upload failed:', {
+                            code: err?.code,
+                            message: err?.message,
+                            uid: auth?.currentUser?.uid || null,
+                            storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || null,
+                          });
+
+                          const hint =
+                            err?.code === 'storage/unauthorized'
+                              ? 'Storage rules denied access. Check Firebase Storage rules and owner UID.'
+                              : err?.code === 'storage/invalid-default-bucket'
+                                ? 'Invalid storage bucket in Vercel env var VITE_FIREBASE_STORAGE_BUCKET.'
+                                : 'Please check browser console for details.';
+
+                          window.alert(`Failed to upload resume: ${err?.code || 'unknown_error'}. ${hint}`);
                         }
                       }}
                     />
