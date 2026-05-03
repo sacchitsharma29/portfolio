@@ -20,40 +20,64 @@ const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 
 // Sanitize data for Firestore - removes undefined values and problematic fields
 const sanitizeForFirestore = (data: PortfolioData): Record<string, unknown> => {
-  const removeUndefinedAndContact = (obj: unknown, isTopLevel = false): unknown => {
-    if (obj === null || obj === undefined) {
+  const isPlainObject = (val: unknown) => Object.prototype.toString.call(val) === '[object Object]';
+
+  const clean = (obj: unknown, path = ''): unknown => {
+    if (obj === null || obj === undefined) return undefined;
+
+    // Primitive values are OK
+    if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') return obj;
+
+    // Dates -> ISO
+    if (obj instanceof Date) return obj.toISOString();
+
+    // Arrays: clean each element and drop invalid ones
+    if (Array.isArray(obj)) {
+      const arr: unknown[] = [];
+      obj.forEach((item, i) => {
+        const cleaned = clean(item, `${path}[${i}]`);
+        if (cleaned !== undefined) arr.push(cleaned);
+      });
+      return arr;
+    }
+
+    // Skip functions, Files, Blobs, and non-plain objects
+    if (typeof obj === 'function') {
+      console.warn('sanitizeForFirestore: Dropping function at', path);
       return undefined;
     }
-    if (Array.isArray(obj)) {
-      return obj
-        .map((item) => removeUndefinedAndContact(item, false))
-        .filter((item) => item !== undefined);
+    // File/Blob detection
+    const maybeFile = obj as { size?: unknown; type?: unknown };
+    if (typeof maybeFile?.size === 'number' && typeof maybeFile?.type === 'string') {
+      console.warn('sanitizeForFirestore: Dropping File/Blob at', path);
+      return undefined;
     }
-    if (typeof obj === 'object') {
+
+    if (isPlainObject(obj)) {
       const result: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(obj)) {
-        // ALLOW data URLs through (we're storing files as base64 in Firestore)
-        // Remove contact from nested objects (only keep at top level)
-        if (key === 'contact' && !isTopLevel) {
-          continue;
-        }
-        const cleaned = removeUndefinedAndContact(value, false);
+      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+        // Keep top-level contact only (older versions expected contact top-level)
+        if (key === 'contact' && path !== '') continue;
+
+        const cleaned = clean(value, path ? `${path}.${key}` : key);
         if (cleaned !== undefined) {
           result[key] = cleaned;
         }
       }
       return result;
     }
-    return obj;
+
+    // Unknown object type -> try JSON-safe fallback
+    try {
+      return JSON.parse(JSON.stringify(obj));
+    } catch (e) {
+      console.warn('sanitizeForFirestore: Dropping unsupported value at', path, obj, e);
+      return undefined;
+    }
   };
 
-  const cleaned = removeUndefinedAndContact(data, true) as Record<string, unknown>;
-  
-  // Ensure contact object exists at top level only
-  if (!cleaned.contact) {
-    cleaned.contact = data.contact;
-  }
-  
+  const cleaned = clean(data, '') as Record<string, unknown>;
+  if (!cleaned.contact) cleaned.contact = data.contact;
   return cleaned;
 };
 
