@@ -22,11 +22,29 @@ const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 const sanitizeForFirestore = (data: PortfolioData): Record<string, unknown> => {
   const isPlainObject = (val: unknown) => Object.prototype.toString.call(val) === '[object Object]';
 
+  const removedPaths: string[] = [];
+
+  const markRemoved = (p: string, why: string) => {
+    removedPaths.push(`${p} (${why})`);
+  };
+
   const clean = (obj: unknown, path = ''): unknown => {
     if (obj === null || obj === undefined) return undefined;
 
     // Primitive values are OK
-    if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') return obj;
+    if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') {
+      if (typeof obj === 'number' && (Number.isNaN(obj) || obj === Infinity || obj === -Infinity)) {
+        markRemoved(path, 'invalid number');
+        return undefined;
+      }
+      return obj;
+    }
+
+    // Reject Symbols and BigInt
+    if (typeof obj === 'symbol' || typeof obj === 'bigint') {
+      markRemoved(path, typeof obj);
+      return undefined;
+    }
 
     // Dates -> ISO
     if (obj instanceof Date) return obj.toISOString();
@@ -41,16 +59,36 @@ const sanitizeForFirestore = (data: PortfolioData): Record<string, unknown> => {
       return arr;
     }
 
-    // Skip functions, Files, Blobs, and non-plain objects
+    // Functions -> drop
     if (typeof obj === 'function') {
-      console.warn('sanitizeForFirestore: Dropping function at', path);
+      markRemoved(path, 'function');
       return undefined;
     }
+
     // File/Blob detection
     const maybeFile = obj as { size?: unknown; type?: unknown };
     if (typeof maybeFile?.size === 'number' && typeof maybeFile?.type === 'string') {
-      console.warn('sanitizeForFirestore: Dropping File/Blob at', path);
+      markRemoved(path, 'File/Blob');
       return undefined;
+    }
+
+    // Map / Set -> convert to array or drop
+    if (obj instanceof Map) {
+      try {
+        const arr = Array.from((obj as Map<unknown, unknown>).entries()).map(([k, v]) => ({ k, v }));
+        return clean(arr, path);
+      } catch {
+        markRemoved(path, 'Map');
+        return undefined;
+      }
+    }
+    if (obj instanceof Set) {
+      try {
+        return clean(Array.from(obj as Set<unknown>), path);
+      } catch {
+        markRemoved(path, 'Set');
+        return undefined;
+      }
     }
 
     if (isPlainObject(obj)) {
@@ -70,14 +108,17 @@ const sanitizeForFirestore = (data: PortfolioData): Record<string, unknown> => {
     // Unknown object type -> try JSON-safe fallback
     try {
       return JSON.parse(JSON.stringify(obj));
-    } catch (e) {
-      console.warn('sanitizeForFirestore: Dropping unsupported value at', path, obj, e);
+    } catch {
+      markRemoved(path, 'non-serializable');
       return undefined;
     }
   };
 
   const cleaned = clean(data, '') as Record<string, unknown>;
   if (!cleaned.contact) cleaned.contact = data.contact;
+  if (removedPaths.length) {
+    console.warn('sanitizeForFirestore removed paths:', removedPaths);
+  }
   return cleaned;
 };
 
@@ -225,6 +266,13 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       docRef,
       (snapshot) => {
         if (!snapshot.exists()) return;
+        try {
+          // Log who wrote the incoming snapshot to help trace overwrites
+          // eslint-disable-next-line no-console
+          console.log('Firestore snapshot _meta:', (snapshot.data() as Record<string, unknown>)._meta);
+        } catch {
+          // ignore logging errors
+        }
 
         // If the admin has unsaved changes in this tab, don't overwrite their draft
         if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
@@ -276,6 +324,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         sanitizedPreview: sanitized
       });
 
+      // Guard: compute payload size and avoid writing documents that exceed Firestore limits
       const meta = {
         _meta: {
           uid: auth?.currentUser?.uid || null,
@@ -283,6 +332,33 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           ts: Date.now()
         }
       } as Record<string, unknown>;
+
+      try {
+        const payload = { ...sanitized, ...meta };
+        const payloadStr = JSON.stringify(payload);
+        const bytes = new TextEncoder().encode(payloadStr).length;
+        // Firestore max document size ~1MB (1,048,576 bytes). Keep headroom.
+        if (bytes > 900_000) {
+          console.error('Aborting Firestore write: payload too large', { bytes });
+          // Log oversized fields to help debugging (e.g., large base64 images)
+          if (Array.isArray(sanitized.certifications)) {
+            (sanitized.certifications as unknown[]).forEach((c, i) => {
+              try {
+                const len = typeof (c as Record<string, unknown>).imageUrl === 'string' ? ((c as Record<string, unknown>).imageUrl as string).length : 0;
+                if (len > 50000) {
+                  console.warn(`Large certification image at index ${i}: ${len} chars`);
+                }
+              } catch {
+                // ignore
+              }
+            });
+          }
+          return;
+        }
+        console.log('Firestore write payload size (bytes):', bytes);
+      } catch {
+        console.warn('Could not compute Firestore payload size');
+      }
 
       console.log('🔥 Writing to Firestore with meta:', meta);
 
