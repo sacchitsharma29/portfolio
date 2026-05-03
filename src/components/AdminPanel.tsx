@@ -20,8 +20,7 @@ import {
 } from 'lucide-react';
 import { usePortfolioData } from '../context/PortfolioContext';
 import { signOut } from 'firebase/auth';
-import { auth, storage, isFirebaseConfigured } from '../firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, isFirebaseConfigured } from '../firebase';
 
 const inputClass =
   'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20';
@@ -109,41 +108,14 @@ const Field: React.FC<FieldProps> = ({
             const file = event.target.files?.[0];
             event.target.value = '';
             if (!file) return;
-            if (!storage) {
-              window.alert('Firebase Storage is not configured in this deployment. Check Vercel env vars and redeploy.');
-              // Fallback: use data URL locally for preview only (won\'t sync to Firestore)
-              onChange(await toDataUrl(file));
-              return;
-            }
-            if (!auth?.currentUser) {
-              window.alert('You are not authenticated. Please log in again on /admin, then retry upload.');
-              return;
-            }
             try {
-              const timestamp = Date.now();
-              const storageRef = ref(storage, `images/certifications/${timestamp}-${file.name}`);
-              await uploadBytes(storageRef, file);
-              const downloadUrl = await getDownloadURL(storageRef);
-              onChange(downloadUrl);
-              console.log('✅ Certificate image uploaded to Firebase Storage:', downloadUrl);
-              window.alert('Certificate image uploaded successfully. Click Save Changes to publish it.');
+              const dataUrl = await toDataUrl(file);
+              onChange(dataUrl);
+              console.log('✅ Certificate image uploaded:', file.name);
+              window.alert(`✅ Certificate image "${file.name}" uploaded successfully. Click Save Changes to publish it.`);
             } catch (err) {
-              const error = err as { code?: string; message?: string };
-              console.error('Certificate image upload failed:', {
-                code: error?.code,
-                message: error?.message,
-                uid: auth?.currentUser?.uid || null,
-                storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || null,
-              });
-
-              const hint =
-                error?.code === 'storage/unauthorized'
-                  ? 'Storage rules denied access. Check Firebase Storage rules and owner UID.'
-                  : error?.code === 'storage/invalid-default-bucket'
-                    ? 'Invalid storage bucket in Vercel env var VITE_FIREBASE_STORAGE_BUCKET.'
-                    : 'Please check browser console for details.';
-
-              window.alert(`Failed to upload certificate image: ${error?.code || 'unknown_error'}. ${hint}`);
+              console.error('❌ Certificate image upload failed:', err);
+              window.alert(`❌ Failed to upload certificate image: ${err instanceof Error ? err.message : 'unknown error'}`);
             }
           }}
         />
@@ -405,43 +377,17 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                         const file = event.target.files?.[0];
                         event.target.value = '';
                         if (!file) return;
-                        if (!storage) {
-                          window.alert('Firebase Storage is not configured in this deployment. Check Vercel env vars and redeploy.');
-                          return;
-                        }
-                        if (!auth?.currentUser) {
-                          window.alert('You are not authenticated. Please log in again on /admin, then retry upload.');
-                          return;
-                        }
 
                         try {
-                          const timestamp = Date.now();
-                          const storageRef = ref(storage, `resumes/${timestamp}-${file.name}`);
-                          await uploadBytes(storageRef, file);
-                          const downloadUrl = await getDownloadURL(storageRef);
-                          
+                          const dataUrl = await toDataUrl(file);
                           update((draft) => {
                             draft.personal.resumeFileName = file.name;
-                            draft.personal.resumeFileDataUrl = downloadUrl;
+                            draft.personal.resumeFileDataUrl = dataUrl;
                           });
-                          window.alert('Resume uploaded successfully. Click Save Changes to publish it.');
+                          window.alert(`✅ Resume "${file.name}" uploaded successfully. Click Save Changes to publish it.`);
                         } catch (error) {
-                          const err = error as { code?: string; message?: string };
-                          console.error('Resume upload failed:', {
-                            code: err?.code,
-                            message: err?.message,
-                            uid: auth?.currentUser?.uid || null,
-                            storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || null,
-                          });
-
-                          const hint =
-                            err?.code === 'storage/unauthorized'
-                              ? 'Storage rules denied access. Check Firebase Storage rules and owner UID.'
-                              : err?.code === 'storage/invalid-default-bucket'
-                                ? 'Invalid storage bucket in Vercel env var VITE_FIREBASE_STORAGE_BUCKET.'
-                                : 'Please check browser console for details.';
-
-                          window.alert(`Failed to upload resume: ${err?.code || 'unknown_error'}. ${hint}`);
+                          console.error('Resume upload failed:', error);
+                          window.alert(`❌ Failed to upload resume: ${error instanceof Error ? error.message : 'unknown error'}`);
                         }
                       }}
                     />

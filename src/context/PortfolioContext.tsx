@@ -18,7 +18,7 @@ const FIRESTORE_DOC_ID = 'public-content';
 
 const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 
-// Sanitize data for Firestore - removes undefined values, data URLs, and problematic fields
+// Sanitize data for Firestore - removes undefined values and problematic fields
 const sanitizeForFirestore = (data: PortfolioData): Record<string, unknown> => {
   const removeUndefinedAndContact = (obj: unknown, isTopLevel = false): unknown => {
     if (obj === null || obj === undefined) {
@@ -32,18 +32,7 @@ const sanitizeForFirestore = (data: PortfolioData): Record<string, unknown> => {
     if (typeof obj === 'object') {
       const result: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
-            // Skip large binary content (data URLs starting with 'data:')
-            if (typeof value === 'string' && value.startsWith('data:')) {
-              continue;
-            }
-            // Skip resumeFileDataUrl only if it's a data URL (old format); allow hosted URLs
-            if (
-              key === 'resumeFileDataUrl' &&
-              typeof value === 'string' &&
-              value.startsWith('data:')
-            ) {
-              continue;
-            }
+        // ALLOW data URLs through (we're storing files as base64 in Firestore)
         // Remove contact from nested objects (only keep at top level)
         if (key === 'contact' && !isTopLevel) {
           continue;
