@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #e5e7eb;
+  background: #020617;
+  font-family: 'Share Tech Mono', 'Fira Mono', 'JetBrains Mono', monospace, ui-monospace, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.18), transparent 28%),
+    radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.15), transparent 22%),
+    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+  color: #e5e7eb;
+  font-family: 'Share Tech Mono', 'Fira Mono', 'JetBrains Mono', monospace, ui-monospace, system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Share Tech Mono', 'Fira Mono', 'JetBrains Mono', monospace, ui-monospace, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.hero-name {
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  -webkit-text-stroke: 0.35px currentColor;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+button,
+a,
+input,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.85);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.35);
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #2563eb, #7c3aed);
+}
+
+@keyframes fade-in-slow {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in-slow {
+  animation: fade-in-slow 1.5s ease-in;
+}
+
+.section-spacing {
+  margin-top: 4rem;
+  margin-bottom: 4rem;
+}
+
+.card-hover {
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+
+.card-hover:hover {
+  box-shadow: 0 8px 32px 0 rgba(80, 80, 200, 0.15);
+  border-color: #6366f1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
