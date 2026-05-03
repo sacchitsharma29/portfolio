@@ -40,6 +40,74 @@ const toDataUrl = (file: File) =>
     reader.readAsDataURL(file);
   });
 
+// Compress image file using canvas; returns dataUrl and byte size
+const compressImageFile = async (fileOrDataUrl: File | string, maxWidth = 1200, quality = 0.7, outputType = 'image/webp') => {
+  const imgDataUrl = typeof fileOrDataUrl === 'string' ? fileOrDataUrl : await toDataUrl(fileOrDataUrl);
+
+  await new Promise<void>((res) => setTimeout(res, 0));
+
+  return await new Promise<{ dataUrl: string; bytes: number }>((resolve, reject) => {
+    const img = new Image();
+    img.onload = async () => {
+      try {
+        const ratio = Math.min(1, maxWidth / img.width);
+        const w = Math.max(1, Math.round(img.width * ratio));
+        const h = Math.max(1, Math.round(img.height * ratio));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Canvas not supported'));
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error('Compression failed'));
+            const reader = new FileReader();
+            reader.onload = () => {
+              const dataUrl = String(reader.result);
+              const bytes = blob.size;
+              resolve({ dataUrl, bytes });
+            };
+            reader.onerror = () => reject(new Error('Failed to read compressed blob'));
+            reader.readAsDataURL(blob);
+          },
+          outputType,
+          quality
+        );
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => reject(new Error('Failed to load image for compression'));
+    img.src = imgDataUrl;
+  });
+};
+
+// Progressive compression: try multiple qualities and sizes until under maxBytes
+const compressUntilBelow = async (file: File, maxBytes: number) => {
+  const qualitySteps = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3];
+  const widthSteps = [1600, 1200, 1000, 800, 600, 400];
+
+  for (const width of widthSteps) {
+    for (const quality of qualitySteps) {
+      try {
+        const { dataUrl, bytes } = await compressImageFile(file, width, quality, 'image/webp');
+        if (bytes <= maxBytes) return { dataUrl, bytes };
+      } catch {
+        // ignore and continue
+      }
+    }
+  }
+
+  // Final attempt: aggressive small size
+  const { dataUrl, bytes } = await compressImageFile(file, 300, 0.25, 'image/webp');
+  if (bytes <= maxBytes) return { dataUrl, bytes };
+  return { dataUrl, bytes };
+};
+
 type FieldProps = {
   label: string;
   value: string;
@@ -57,6 +125,8 @@ type ImageFieldProps = {
   onChange: (value: string) => void;
   placeholder?: string;
   hint?: string;
+  onSizeChange?: (dataUrl: string, bytes: number) => void;
+  sizeBytes?: number | undefined;
 };
 
 const Field: React.FC<FieldProps> = ({
@@ -109,10 +179,33 @@ const Field: React.FC<FieldProps> = ({
             event.target.value = '';
             if (!file) return;
             try {
-              const dataUrl = await toDataUrl(file);
-              onChange(dataUrl);
-              console.log('✅ Certificate image uploaded:', file.name);
-              window.alert(`✅ Certificate image "${file.name}" uploaded successfully. Click Save Changes to publish it.`);
+              // Auto-compress progressively until image is small enough
+              const MAX_IMAGE_BYTES = 250 * 1024; // 250 KB recommended max per image
+              let compressed;
+              try {
+                compressed = await compressUntilBelow(file, MAX_IMAGE_BYTES);
+              } catch (err) {
+                console.warn('Compression error', err);
+              }
+
+              if (!compressed || compressed.bytes > MAX_IMAGE_BYTES) {
+                // If we couldn't get it below the threshold, still offer the best-effort compressed result if available
+                if (compressed) {
+                  console.warn('Could not reach target size; using best-effort compressed image', { bytes: compressed.bytes });
+                  window.alert(`Image compressed to ${Math.round(compressed.bytes / 1024)} KB which may still be large. Saving could exceed Firestore limits.`);
+                  onChange(compressed.dataUrl);
+                  onSizeChange?.(compressed.dataUrl, compressed.bytes);
+                  console.log('✅ Certificate image uploaded (best-effort compressed):', file.name, { bytes: compressed.bytes });
+                } else {
+                  window.alert('Could not compress the image. Please choose a smaller image or host it externally.');
+                }
+                return;
+              }
+
+              onChange(compressed.dataUrl);
+              onSizeChange?.(compressed.dataUrl, compressed.bytes);
+              console.log('✅ Certificate image uploaded (auto-compressed):', file.name, { bytes: compressed.bytes });
+              window.alert(`✅ Certificate image "${file.name}" uploaded (auto-compressed to ${Math.round(compressed.bytes / 1024)} KB). Click Save Changes to publish it.`);
             } catch (err) {
               console.error('❌ Certificate image upload failed:', err);
               window.alert(`❌ Failed to upload certificate image: ${err instanceof Error ? err.message : 'unknown error'}`);
@@ -121,8 +214,13 @@ const Field: React.FC<FieldProps> = ({
         />
       </label>
       {value ? (
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-950/50">
-          <img src={value} alt={label} className="w-full h-auto object-contain max-h-72" />
+        <div>
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-950/50">
+            <img src={value} alt={label} className="w-full h-auto object-contain max-h-72" />
+          </div>
+          {typeof sizeBytes === 'number' ? (
+            <p className="mt-2 text-xs text-slate-400">Compressed: {Math.round(sizeBytes / 1024)} KB</p>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -153,12 +251,26 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   const { data, setData, resetData } = usePortfolioData();
   const importInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(() => cloneData(data));
+  const [imageSizes, setImageSizes] = useState<Record<string, number>>({});
   const [notice, setNotice] = useState('Edit your content, then press Save Changes.');
   const [newProjectSection, setNewProjectSection] = useState('');
 
   React.useEffect(() => {
     setDraft(cloneData(data));
   }, [data]);
+
+  // Keep image size map in sync when an image URL is removed
+  React.useEffect(() => {
+    // remove any keys that no longer exist in draft.certifications
+    const urls = new Set(draft.certifications.map((c) => c.imageUrl).filter(Boolean));
+    setImageSizes((prev) => {
+      const next: Record<string, number> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        if (urls.has(k)) next[k] = v;
+      }
+      return next;
+    });
+  }, [draft.certifications]);
 
   const update = (mutator: (draft: typeof data) => void) => {
     setDraft((current) => {
@@ -786,6 +898,8 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                       label="Certificate Image"
                       value={certification.imageUrl || ''}
                       onChange={(value) => update((draft) => { draft.certifications = draft.certifications.map((item, itemIndex) => itemIndex === index ? { ...item, imageUrl: value } : item); })}
+                      onSizeChange={(dataUrl, bytes) => setImageSizes((prev) => ({ ...prev, [dataUrl]: bytes }))}
+                      sizeBytes={imageSizes[certification.imageUrl || '']}
                       placeholder="Upload or paste a certificate image URL"
                       hint="Optional thumbnail shown on the public site"
                     />
