@@ -32,15 +32,21 @@ const sanitizeForFirestore = (data: PortfolioData): Record<string, unknown> => {
     if (typeof obj === 'object') {
       const result: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
-        // Skip data URLs, image URLs, and large binary content
-        if (
-          key.includes('DataUrl') ||
-          key.includes('dataUrl') ||
-          key === 'imageUrl' ||
-          (typeof value === 'string' && value.startsWith('data:'))
-        ) {
-          continue;
-        }
+            // Skip image URLs and large binary content (data URLs starting with 'data:')
+            if (
+              key === 'imageUrl' ||
+              (typeof value === 'string' && value.startsWith('data:'))
+            ) {
+              continue;
+            }
+            // Skip resumeFileDataUrl only if it's a data URL (old format), allow Firebase Storage URLs
+            if (
+              key === 'resumeFileDataUrl' &&
+              typeof value === 'string' &&
+              value.startsWith('data:')
+            ) {
+              continue;
+            }
         // Remove contact from nested objects (only keep at top level)
         if (key === 'contact' && !isTopLevel) {
           continue;

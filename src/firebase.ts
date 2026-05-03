@@ -2,6 +2,7 @@ import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAnalytics, Analytics } from 'firebase/analytics';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
@@ -25,6 +26,7 @@ const isFirebaseConfigured = [
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 let analytics: Analytics | undefined = undefined;
 
 if (isFirebaseConfigured) {
@@ -32,6 +34,7 @@ if (isFirebaseConfigured) {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
     
     // Initialize analytics only in the browser and when a measurementId is provided
     if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
@@ -44,4 +47,4 @@ if (isFirebaseConfigured) {
   console.warn('Firebase env variables not configured. Set them in .env.local');
 }
 
-export { app, auth, db, analytics, isFirebaseConfigured };
+export { app, auth, db, storage, analytics, isFirebaseConfigured };

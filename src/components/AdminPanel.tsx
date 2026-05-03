@@ -20,7 +20,8 @@ import {
 } from 'lucide-react';
 import { usePortfolioData } from '../context/PortfolioContext';
 import { signOut } from 'firebase/auth';
-import { auth, isFirebaseConfigured } from '../firebase';
+import { auth, storage, isFirebaseConfigured } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const inputClass =
   'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20';
@@ -368,12 +369,22 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                       onChange={async (event) => {
                         const file = event.target.files?.[0];
                         event.target.value = '';
-                        if (!file) return;
-                        const dataUrl = await toDataUrl(file);
-                        update((draft) => {
-                          draft.personal.resumeFileName = file.name;
-                          draft.personal.resumeFileDataUrl = dataUrl;
-                        });
+                        if (!file || !storage) return;
+
+                        try {
+                          const timestamp = Date.now();
+                          const storageRef = ref(storage, `resumes/${timestamp}-${file.name}`);
+                          await uploadBytes(storageRef, file);
+                          const downloadUrl = await getDownloadURL(storageRef);
+                          
+                          update((draft) => {
+                            draft.personal.resumeFileName = file.name;
+                            draft.personal.resumeFileDataUrl = downloadUrl;
+                          });
+                        } catch (error) {
+                          console.error('Resume upload failed:', error);
+                          window.alert('Failed to upload resume. Please try again.');
+                        }
                       }}
                     />
                   </label>
