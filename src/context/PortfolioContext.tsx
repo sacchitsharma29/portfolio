@@ -276,7 +276,17 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         sanitizedPreview: sanitized
       });
 
-      setDoc(docRef, sanitized, { merge: true })
+      const meta = {
+        _meta: {
+          uid: auth?.currentUser?.uid || null,
+          origin: typeof window !== 'undefined' ? window.location.href : 'server',
+          ts: Date.now()
+        }
+      } as Record<string, unknown>;
+
+      console.log('🔥 Writing to Firestore with meta:', meta);
+
+      setDoc(docRef, { ...sanitized, ...meta }, { merge: true })
         .then(() => {
           try {
             window.localStorage.removeItem('PORTFOLIO_HAS_UNSAVED_CHANGES');
@@ -285,7 +295,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
         })
         .catch((error) => {
-          console.error('Failed to sync portfolio data to Firestore:', error, { sanitized });
+          console.error('Failed to sync portfolio data to Firestore:', error, { sanitized, meta });
         });
     }
   }, [canWriteRemote, data]);
