@@ -23,12 +23,12 @@ import { signOut } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../firebase';
 
 const inputClass =
-  'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20';
+  'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20 break-words';
 const textareaClass =
-  'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20';
+  'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20 resize-none break-words whitespace-pre-wrap overflow-auto';
 
 const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
-const splitLines = (value: string) => value.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
+const splitLines = (value: string) => value.split('\n').map((item) => item.trim()).filter(Boolean);
 const joinLines = (items: string[]) => items.join('\n');
 const nextId = (ids: number[]) => (ids.length ? Math.max(...ids) + 1 : 1);
 
@@ -117,6 +117,7 @@ type FieldProps = {
   multiline?: boolean;
   rows?: number;
   hint?: string;
+  spellCheck?: boolean | 'true' | 'false';
 };
 
 type ImageFieldProps = {
@@ -137,7 +138,8 @@ const Field: React.FC<FieldProps> = ({
   type = 'text',
   multiline = false,
   rows = 4,
-  hint
+  hint,
+  spellCheck = true
 }) => (
   <label className="block space-y-2">
     <div className="flex items-center justify-between gap-4">
@@ -151,6 +153,7 @@ const Field: React.FC<FieldProps> = ({
         placeholder={placeholder}
         rows={rows}
         className={textareaClass}
+        spellCheck={spellCheck}
       />
     ) : (
       <input
@@ -159,6 +162,7 @@ const Field: React.FC<FieldProps> = ({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         className={inputClass}
+        spellCheck={spellCheck}
       />
     )}
   </label>
@@ -957,6 +961,7 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                     onChange={(event) => setNewProjectSection(event.target.value)}
                     placeholder="Add new section (e.g., Mobile Apps)"
                     className={inputClass}
+                    spellCheck="true"
                   />
                   <button
                     type="button"
@@ -1006,6 +1011,7 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                           })}
                           placeholder="Select or type a section"
                           className={inputClass}
+                          spellCheck="true"
                         />
                       </label>
                       <Field label="GitHub URL" value={project.githubUrl || ''} onChange={(value) => update((draft) => { draft.projects = draft.projects.map((item) => item.id === project.id ? { ...item, githubUrl: value } : item); })} placeholder="Optional" hint="Leave blank if there is no GitHub link" />
