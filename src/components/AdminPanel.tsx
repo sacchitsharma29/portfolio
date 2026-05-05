@@ -28,8 +28,14 @@ const textareaClass =
   'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20 resize-none break-words whitespace-pre-wrap overflow-auto';
 
 const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
-const splitLines = (value: string) => value.split('\n').map((item) => item.trim()).filter(Boolean);
-const joinLines = (items: string[]) => items.join('\n');
+const splitLines = (value: string) => {
+  if (!value || typeof value !== 'string') return [];
+  return value.split('\n').map((item) => item.trim()).filter((item) => item.length > 0);
+};
+const joinLines = (items: string[] | undefined | null) => {
+  if (!items || !Array.isArray(items)) return '';
+  return items.filter((item) => item && typeof item === 'string').join('\n');
+};
 const nextId = (ids: number[]) => (ids.length ? Math.max(...ids) + 1 : 1);
 
 const toDataUrl = (file: File) =>
