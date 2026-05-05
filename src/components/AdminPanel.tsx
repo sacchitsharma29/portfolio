@@ -28,13 +28,17 @@ const textareaClass =
   'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20 resize-none break-words whitespace-pre-wrap overflow-auto';
 
 const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
-const splitLines = (value: string) => {
+const splitLines = (value: string): string[] => {
   if (!value || typeof value !== 'string') return [];
-  return value.split('\n').map((item) => item.trim()).filter((item) => item.length > 0);
+  const lines = value.split('\n');
+  return lines.map((line) => line.trim()).filter((line) => line.length > 0);
 };
-const joinLines = (items: string[] | undefined | null) => {
+const joinLines = (items: string[] | undefined | null): string => {
   if (!items || !Array.isArray(items)) return '';
-  return items.filter((item) => item && typeof item === 'string').join('\n');
+  return items
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter((item) => item.length > 0)
+    .join('\n');
 };
 const nextId = (ids: number[]) => (ids.length ? Math.max(...ids) + 1 : 1);
 
@@ -473,14 +477,27 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                 multiline
                 rows={5}
               />
-              <Field
-                label="Roles"
-                value={joinLines(draft.personal.roles)}
-                onChange={(value) => update((draft) => { draft.personal.roles = splitLines(value); })}
-                multiline
-                rows={5}
-                hint="One role per line"
-              />
+              <div>
+                <label className="block space-y-2">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-medium text-slate-200">Roles</span>
+                    <span className="text-xs text-slate-500">One role per line</span>
+                  </div>
+                  <textarea
+                    value={joinLines(draft.personal.roles)}
+                    onChange={(event) => {
+                      const newValue = event.target.value;
+                      update((draft) => {
+                        draft.personal.roles = splitLines(newValue);
+                      });
+                    }}
+                    placeholder="Enter roles, one per line"
+                    rows={5}
+                    className={textareaClass}
+                    spellCheck="true"
+                  />
+                </label>
+              </div>
             </div>
             <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
