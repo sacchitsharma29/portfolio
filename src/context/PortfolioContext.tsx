@@ -192,7 +192,14 @@ const normalizeData = (raw: Partial<PortfolioData> | null | undefined): Portfoli
           ? raw.contact.emailjsPublicKey
           : base.contact.emailjsPublicKey,
     },
-    techStack: { ...base.techStack, ...(raw.techStack || {}) },
+    // If `techStack` is present in the incoming data (even as an empty object),
+    // prefer it exactly as provided so removals persist. Only fall back to the
+    // default `base.techStack` when the field is completely missing/undefined.
+    techStack: raw.techStack !== undefined ? (raw.techStack as PortfolioData['techStack']) : base.techStack,
+    techStackAlignments: {
+      ...base.techStackAlignments,
+      ...((raw.techStackAlignments as Record<string, 'left' | 'center' | 'right'>) || {}),
+    },
     experience: Array.isArray(raw.experience) ? raw.experience : base.experience,
     education: educationEntries as PortfolioData['education'],
     softSkills: Array.isArray(raw.softSkills) ? raw.softSkills : base.softSkills,
@@ -362,7 +369,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       console.log('🔥 Writing to Firestore with meta:', meta);
 
-      setDoc(docRef, { ...sanitized, ...meta }, { merge: true })
+      setDoc(docRef, { ...sanitized, ...meta })
         .then(() => {
           try {
             window.localStorage.removeItem('PORTFOLIO_HAS_UNSAVED_CHANGES');

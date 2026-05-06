@@ -9,6 +9,7 @@ export const portfolioData = {
       "Cyber Security Enthusiast"
     ],
     subtitle: "Automating. Securing. Scaling. Collaborating.",
+    tagline: "Empowering innovation through code, automation, and AI.",
     location: "Jammu, India",
     bio: "B.Tech CSE student specializing in Cyber Security with expertise in building scalable applications, automating DevOps pipelines, and integrating AI in real-world use cases.",
     email: "sacchitsharma2904ss@gmail.com",
@@ -38,6 +39,7 @@ export const portfolioData = {
       "Cybersecurity", "Linux Security", "Secure Backend Practices"
     ]
   },
+  techStackAlignments: {} as Record<string, 'left' | 'center' | 'right'>,
 
   experience: [
     {

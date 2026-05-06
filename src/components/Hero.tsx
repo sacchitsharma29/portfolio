@@ -93,7 +93,7 @@ const Hero: React.FC = () => {
             <h1 className="hero-name text-4xl sm:text-6xl lg:text-7xl font-bold text-white mb-4 drop-shadow-lg">
               <span className="block">{portfolioData.personal.name}</span>
             </h1>
-            <div className="text-base sm:text-lg text-blue-300 mb-2 animate-fade-in-slow">Empowering innovation through code, automation, and AI.</div>
+            <div className="text-base sm:text-lg text-blue-300 mb-2 animate-fade-in-slow">{portfolioData.personal.tagline || 'Empowering innovation through code, automation, and AI.'}</div>
             <div className="text-xl sm:text-2xl lg:text-3xl text-gray-300 mb-2 h-12 flex items-center justify-center transition-opacity duration-700 opacity-100">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
                 {displayText}

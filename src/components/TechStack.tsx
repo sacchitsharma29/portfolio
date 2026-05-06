@@ -7,6 +7,11 @@ const TechStack: React.FC = () => {
   const { data: portfolioData } = usePortfolioData();
 
   const techCategories = Object.entries(portfolioData.techStack);
+  const alignmentClassMap = {
+    left: 'items-start text-left justify-start',
+    center: 'items-center text-center justify-center',
+    right: 'items-end text-right justify-end'
+  } as const;
 
   return (
     <section id="tech-stack" className="py-20 bg-gray-900">
@@ -28,12 +33,16 @@ const TechStack: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {techCategories.map(([category, technologies], categoryIndex) => (
+          {techCategories.map(([category, technologies], categoryIndex) => {
+            const alignment = portfolioData.techStackAlignments?.[category] || 'left';
+            const alignmentClasses = alignmentClassMap[alignment as keyof typeof alignmentClassMap];
+
+            return (
             <div
               key={category}
               className={`bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-blue-500/50 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 ${
                 isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-              }`}
+              } ${alignmentClasses}`}
               style={{
                 transitionDelay: `${categoryIndex * 200}ms`
               }}
@@ -41,7 +50,7 @@ const TechStack: React.FC = () => {
               <h3 className="text-xl font-semibold text-white mb-4 text-center">
                 {category}
               </h3>
-              <div className="flex flex-wrap gap-2">
+              <div className={`flex flex-wrap gap-2 ${alignment === 'center' ? 'justify-center' : alignment === 'right' ? 'justify-end' : 'justify-start'}`}>
                 {technologies.map((tech, techIndex) => (
                   <span
                     key={techIndex}
@@ -52,7 +61,8 @@ const TechStack: React.FC = () => {
                 ))}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

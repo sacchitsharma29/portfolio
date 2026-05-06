@@ -27,6 +27,11 @@ const inputClass =
 const textareaClass =
   'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20 resize-vertical font-mono';
 const textareaSmallClass = textareaClass;
+const alignmentOptions = [
+  { label: 'Left', value: 'left' },
+  { label: 'Center', value: 'center' },
+  { label: 'Right', value: 'right' }
+] as const;
 
 const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 const splitLines = (value: string): string[] => {
@@ -173,6 +178,32 @@ const Field: React.FC<FieldProps> = ({
         className={inputClass}
       />
     )}
+  </label>
+);
+
+const SelectField: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: ReadonlyArray<{ label: string; value: string }>;
+  hint?: string;
+}> = ({ label, value, onChange, options, hint }) => (
+  <label className="block space-y-2">
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-sm font-medium text-slate-200">{label}</span>
+      {hint && <span className="text-xs text-slate-500">{hint}</span>}
+    </div>
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className={inputClass}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   </label>
 );
 
@@ -490,6 +521,7 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
               <Field label="Email" value={draft.personal.email} onChange={(value) => update((draft) => { draft.personal.email = value; })} type="email" />
               <Field label="Location" value={draft.personal.location} onChange={(value) => update((draft) => { draft.personal.location = value; })} />
               <Field label="Subtitle" value={draft.personal.subtitle} onChange={(value) => update((draft) => { draft.personal.subtitle = value; })} />
+              <Field label="Tagline" value={draft.personal.tagline || ''} onChange={(value) => update((draft) => { draft.personal.tagline = value; })} placeholder="Short hero line (optional)" />
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <Field
@@ -687,7 +719,7 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
             <div className="space-y-4">
               {Object.entries(draft.techStack).map(([category, technologies], index) => (
                 <div key={`tech-stack-${index}`} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-                  <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] lg:items-end">
                     <Field
                       label="Category"
                       value={category}
@@ -699,16 +731,35 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                         }, {} as typeof draft.techStack);
                       })}
                     />
-                    <button
-                      type="button"
-                      onClick={() => update((draft) => {
-                        delete draft.techStack[category];
-                      })}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20"
-                    >
-                      <Trash2 size={16} />
-                      Remove
-                    </button>
+                    <div className="rounded-xl border border-white/10 bg-slate-900/40 p-3">
+                      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                        <SelectField
+                          label="Alignment"
+                          value={draft.techStackAlignments?.[category] || 'left'}
+                          onChange={(value) => update((draft) => {
+                            draft.techStackAlignments = {
+                              ...(draft.techStackAlignments || {}),
+                              [category]: value as 'left' | 'center' | 'right'
+                            };
+                          })}
+                          options={alignmentOptions}
+                          hint="Card content alignment"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => update((draft) => {
+                            delete draft.techStack[category];
+                            if (draft.techStackAlignments) {
+                              delete draft.techStackAlignments[category];
+                            }
+                          })}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20"
+                        >
+                          <Trash2 size={16} />
+                          Remove
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   <div className="mt-4">
                     <Field
