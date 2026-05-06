@@ -23,9 +23,10 @@ import { signOut } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../firebase';
 
 const inputClass =
-  'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20 break-words';
+  'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20';
 const textareaClass =
-  'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20 resize-none break-words whitespace-pre-wrap overflow-auto';
+  'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20 resize-vertical font-mono';
+const textareaSmallClass = textareaClass;
 
 const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 const splitLines = (value: string): string[] => {
@@ -127,7 +128,6 @@ type FieldProps = {
   multiline?: boolean;
   rows?: number;
   hint?: string;
-  spellCheck?: boolean | 'true' | 'false';
 };
 
 type ImageFieldProps = {
@@ -148,8 +148,7 @@ const Field: React.FC<FieldProps> = ({
   type = 'text',
   multiline = false,
   rows = 4,
-  hint,
-  spellCheck = true
+  hint
 }) => (
   <label className="block space-y-2">
     <div className="flex items-center justify-between gap-4">
@@ -163,7 +162,7 @@ const Field: React.FC<FieldProps> = ({
         placeholder={placeholder}
         rows={rows}
         className={textareaClass}
-        spellCheck={spellCheck}
+        style={{ whiteSpace: 'pre-wrap' }}
       />
     ) : (
       <input
@@ -172,7 +171,6 @@ const Field: React.FC<FieldProps> = ({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         className={inputClass}
-        spellCheck={spellCheck}
       />
     )}
   </label>
@@ -268,9 +266,33 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   const [imageSizes, setImageSizes] = useState<Record<string, number>>({});
   const [notice, setNotice] = useState('Edit your content, then press Save Changes.');
   const [newProjectSection, setNewProjectSection] = useState('');
+  // Store raw textarea values for list-type fields to preserve newlines during editing
+  const [rolesText, setRolesText] = useState(() => joinLines(data.personal.roles));
+  const [softSkillsText, setSoftSkillsText] = useState(() => joinLines(data.softSkills));
+  // Tech stack skills text: stored by category name
+  const techStackSkillsText = useRef<Record<string, string>>({});
+  // Experience highlights: stored by experience id
+  const experienceHighlightsText = useRef<Record<number, string>>({});
+  // Project tech stack: stored by project id
+  const projectTechStackText = useRef<Record<number, string>>({});
 
   React.useEffect(() => {
     setDraft(cloneData(data));
+    setRolesText(joinLines(data.personal.roles));
+    setSoftSkillsText(joinLines(data.softSkills));
+    // Initialize refs for lists
+    techStackSkillsText.current = {};
+    experienceHighlightsText.current = {};
+    projectTechStackText.current = {};
+    data.experience.forEach((exp) => {
+      experienceHighlightsText.current[exp.id] = joinLines(exp.highlights);
+    });
+    data.projects.forEach((proj) => {
+      projectTechStackText.current[proj.id] = joinLines(proj.techStack);
+    });
+    Object.entries(data.techStack).forEach(([category, items]) => {
+      techStackSkillsText.current[category] = joinLines(items);
+    });
   }, [data]);
 
   // Keep image size map in sync when an image URL is removed
@@ -477,27 +499,17 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                 multiline
                 rows={5}
               />
-              <div>
-                <label className="block space-y-2">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm font-medium text-slate-200">Roles</span>
-                    <span className="text-xs text-slate-500">One role per line</span>
-                  </div>
-                  <textarea
-                    value={joinLines(draft.personal.roles)}
-                    onChange={(event) => {
-                      const newValue = event.target.value;
-                      update((draft) => {
-                        draft.personal.roles = splitLines(newValue);
-                      });
-                    }}
-                    placeholder="Enter roles, one per line"
-                    rows={5}
-                    className={textareaClass}
-                    spellCheck="true"
-                  />
-                </label>
-              </div>
+              <Field
+                label="Roles"
+                value={rolesText}
+                onChange={(value) => {
+                  setRolesText(value);
+                  update((draft) => { draft.personal.roles = splitLines(value); });
+                }}
+                multiline
+                rows={5}
+                hint="One role per line"
+              />
             </div>
             <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -635,7 +647,7 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                   <p className="mt-1 text-xs text-slate-400">These items appear in the contact panel. Add label and value for each (e.g., Email, Location).</p>
                   <div className="mt-3 space-y-3">
                     {(draft.contactInfo || []).map((item, idx) => (
-                      <div key={`${item.label}-${idx}`} className="grid gap-2 md:grid-cols-[1fr_auto]">
+                      <div key={`contact-${idx}`} className="grid gap-2 md:grid-cols-[1fr_auto]">
                         <div className="grid gap-2 md:grid-cols-2">
                           <Field label="Label" value={item.label} onChange={(value) => update((draft) => {
                             draft.contactInfo = (draft.contactInfo || []).map((it, i) => i === idx ? { ...it, label: value } : it);
@@ -673,8 +685,8 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
             description="Edit categories and the skills inside each category. Use one skill per line."
           >
             <div className="space-y-4">
-              {Object.entries(draft.techStack).map(([category, technologies]) => (
-                <div key={category} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+              {Object.entries(draft.techStack).map(([category, technologies], index) => (
+                <div key={`tech-stack-${index}`} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
                   <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
                     <Field
                       label="Category"
@@ -701,8 +713,11 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                   <div className="mt-4">
                     <Field
                       label="Skills"
-                      value={joinLines(technologies)}
-                      onChange={(value) => update((draft) => { draft.techStack[category] = splitLines(value); })}
+                      value={techStackSkillsText.current[category] || joinLines(technologies)}
+                      onChange={(value) => {
+                        techStackSkillsText.current[category] = value;
+                        update((draft) => { draft.techStack[category] = splitLines(value); });
+                      }}
                       multiline
                       rows={4}
                       hint="One skill per line"
@@ -760,7 +775,10 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                   </div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <Field label="Description" value={experience.description} onChange={(value) => update((draft) => { draft.experience = draft.experience.map((item) => item.id === experience.id ? { ...item, description: value } : item); })} multiline rows={4} />
-                    <Field label="Highlights" value={joinLines(experience.highlights)} onChange={(value) => update((draft) => { draft.experience = draft.experience.map((item) => item.id === experience.id ? { ...item, highlights: splitLines(value) } : item); })} multiline rows={4} hint="One highlight per line" />
+                    <Field label="Highlights" value={experienceHighlightsText.current[experience.id] || joinLines(experience.highlights)} onChange={(value) => {
+                      experienceHighlightsText.current[experience.id] = value;
+                      update((draft) => { draft.experience = draft.experience.map((item) => item.id === experience.id ? { ...item, highlights: splitLines(value) } : item); });
+                    }} multiline rows={4} hint="One highlight per line" />
                   </div>
                 </div>
               ))}
@@ -851,8 +869,11 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
           >
             <Field
               label="Soft Skills"
-              value={joinLines(draft.softSkills)}
-              onChange={(value) => update((draft) => { draft.softSkills = splitLines(value); })}
+              value={softSkillsText}
+              onChange={(value) => {
+                setSoftSkillsText(value);
+                update((draft) => { draft.softSkills = splitLines(value); });
+              }}
               multiline
               rows={8}
               hint="One skill per line"
@@ -867,7 +888,7 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
           >
             <div className="space-y-4">
               {draft.certifications.map((certification, index) => (
-                <div key={`${certification.title}-${index}`} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 shadow-lg shadow-black/10">
+                <div key={`certification-${index}`} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 shadow-lg shadow-black/10">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-slate-300">Certificate {index + 1}</p>
@@ -984,7 +1005,6 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                     onChange={(event) => setNewProjectSection(event.target.value)}
                     placeholder="Add new section (e.g., Mobile Apps)"
                     className={inputClass}
-                    spellCheck="true"
                   />
                   <button
                     type="button"
@@ -1034,12 +1054,14 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                           })}
                           placeholder="Select or type a section"
                           className={inputClass}
-                          spellCheck="true"
                         />
                       </label>
                       <Field label="GitHub URL" value={project.githubUrl || ''} onChange={(value) => update((draft) => { draft.projects = draft.projects.map((item) => item.id === project.id ? { ...item, githubUrl: value } : item); })} placeholder="Optional" hint="Leave blank if there is no GitHub link" />
                       <Field label="Live URL" value={project.liveUrl || ''} onChange={(value) => update((draft) => { draft.projects = draft.projects.map((item) => item.id === project.id ? { ...item, liveUrl: value } : item); })} placeholder="Optional" hint="Leave blank if there is no live demo" />
-                      <Field label="Tech Stack" value={joinLines(project.techStack)} onChange={(value) => update((draft) => { draft.projects = draft.projects.map((item) => item.id === project.id ? { ...item, techStack: splitLines(value) } : item); })} multiline rows={4} hint="One technology per line" />
+                      <Field label="Tech Stack" value={projectTechStackText.current[project.id] || joinLines(project.techStack)} onChange={(value) => {
+                        projectTechStackText.current[project.id] = value;
+                        update((draft) => { draft.projects = draft.projects.map((item) => item.id === project.id ? { ...item, techStack: splitLines(value) } : item); });
+                      }} multiline rows={4} hint="One technology per line" />
                       <div className="md:col-span-2">
                         <Field label="Description" value={project.description} onChange={(value) => update((draft) => { draft.projects = draft.projects.map((item) => item.id === project.id ? { ...item, description: value } : item); })} multiline rows={4} />
                       </div>
