@@ -39,7 +39,19 @@ export const portfolioData = {
       "Cybersecurity", "Linux Security", "Secure Backend Practices"
     ]
   },
-  techStackAlignments: {} as Record<string, 'left' | 'center' | 'right'>,
+  techStackOrder: [
+    "DevOps & Infrastructure",
+    "Backend",
+    "Frontend",
+    "AI & Prompt Engineering",
+    "Databases",
+    "Security"
+  ] as string[],
+
+  footer: {
+    copyrightText: "© 2025 Sacchit Sharma. All rights reserved.",
+    showSocialLinks: true
+  },
 
   experience: [
     {
@@ -346,5 +358,5 @@ export const portfolioData = {
     linkedin: "https://www.linkedin.com/in/sacchit-sharma-76175a234/",
     instagram: "https://instagram.com/sacchit._29",
     twitter: ""
-  }
+  },
 };

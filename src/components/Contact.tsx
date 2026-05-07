@@ -209,13 +209,13 @@ const Contact: React.FC = () => {
               
               <div className="space-y-6">
                 {Array.isArray(portfolioData.contactInfo) && portfolioData.contactInfo.map((item, idx) => (
-                  <div key={`${item.label}-${idx}`} className="flex items-center space-x-4">
-                    <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-3 rounded-full">
+                  <div key={`${item.label}-${idx}`} className="flex items-start space-x-4">
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-3 rounded-full flex-shrink-0">
                       {renderIcon(item.label)}
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <h4 className="text-white font-medium">{item.label}</h4>
-                      <p className="text-gray-400">{item.value}</p>
+                      <p className="text-gray-400 break-words overflow-hidden">{item.value}</p>
                     </div>
                   </div>
                 ))}

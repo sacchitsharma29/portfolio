@@ -196,9 +196,12 @@ const normalizeData = (raw: Partial<PortfolioData> | null | undefined): Portfoli
     // prefer it exactly as provided so removals persist. Only fall back to the
     // default `base.techStack` when the field is completely missing/undefined.
     techStack: raw.techStack !== undefined ? (raw.techStack as PortfolioData['techStack']) : base.techStack,
-    techStackAlignments: {
-      ...base.techStackAlignments,
-      ...((raw.techStackAlignments as Record<string, 'left' | 'center' | 'right'>) || {}),
+    techStackOrder: Array.isArray(raw.techStackOrder)
+      ? (raw.techStackOrder as string[])
+      : base.techStackOrder,
+    footer: {
+      ...base.footer,
+      ...(raw.footer || {}),
     },
     experience: Array.isArray(raw.experience) ? raw.experience : base.experience,
     education: educationEntries as PortfolioData['education'],

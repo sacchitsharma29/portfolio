@@ -12,10 +12,12 @@ import Contact from './components/Contact';
 import AdminPanel from './components/AdminPanel';
 import AdminLogin from './components/AdminLogin';
 import { auth, isFirebaseConfigured } from './firebase';
+import { usePortfolioData } from './context/PortfolioContext';
 
 const isAdminPath = () => window.location.pathname === '/admin';
 
 function App() {
+  const { data: portfolioData } = usePortfolioData();
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminRoute, setIsAdminRoute] = useState(isAdminPath());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -95,7 +97,7 @@ function App() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center">
                 <p className="text-sm text-slate-400">
-                  © 2025 Sacchit Sharma. All rights reserved.
+                  {portfolioData.footer.copyrightText}
                 </p>
               </div>
             </div>

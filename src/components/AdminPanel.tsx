@@ -16,7 +16,9 @@ import {
   Upload,
   UserRound,
   FolderKanban,
-  Mail
+  Mail,
+  GripVertical,
+  PanelBottom
 } from 'lucide-react';
 import { usePortfolioData } from '../context/PortfolioContext';
 import { signOut } from 'firebase/auth';
@@ -27,11 +29,6 @@ const inputClass =
 const textareaClass =
   'w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/70 focus:ring-2 focus:ring-sky-500/20 resize-vertical font-mono';
 const textareaSmallClass = textareaClass;
-const alignmentOptions = [
-  { label: 'Left', value: 'left' },
-  { label: 'Center', value: 'center' },
-  { label: 'Right', value: 'right' }
-] as const;
 
 const cloneData = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 const splitLines = (value: string): string[] => {
@@ -178,32 +175,6 @@ const Field: React.FC<FieldProps> = ({
         className={inputClass}
       />
     )}
-  </label>
-);
-
-const SelectField: React.FC<{
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: ReadonlyArray<{ label: string; value: string }>;
-  hint?: string;
-}> = ({ label, value, onChange, options, hint }) => (
-  <label className="block space-y-2">
-    <div className="flex items-center justify-between gap-4">
-      <span className="text-sm font-medium text-slate-200">{label}</span>
-      {hint && <span className="text-xs text-slate-500">{hint}</span>}
-    </div>
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className={inputClass}
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
   </label>
 );
 
@@ -493,7 +464,8 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                 ['education', 'Education', GraduationCap],
                 ['soft-skills', 'Soft Skills', Sparkles],
                 ['certifications', 'Certifications', BadgeCheck],
-                ['projects', 'Projects', FolderKanban]
+                ['projects', 'Projects', FolderKanban],
+                ['footer', 'Footer', PanelBottom]
               ].map(([id, label, Icon]) => (
                 <button
                   key={id}
@@ -714,78 +686,90 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
             id="tech-stack"
             icon={<Layers3 size={20} />}
             title="Tech Stack"
-            description="Edit categories and the skills inside each category. Use one skill per line."
+            description="Edit categories and the skills inside each category. Reorder by dragging or using arrow buttons."
           >
             <div className="space-y-4">
-              {Object.entries(draft.techStack).map(([category, technologies], index) => (
-                <div key={`tech-stack-${index}`} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] lg:items-end">
-                    <Field
-                      label="Category"
-                      value={category}
-                      onChange={(value) => update((draft) => {
-                        const entries = Object.entries(draft.techStack);
-                        draft.techStack = entries.reduce((acc, [key, items]) => {
-                          acc[key === category ? value : key] = items;
-                          return acc;
-                        }, {} as typeof draft.techStack);
-                      })}
-                    />
-                    <div className="rounded-xl border border-white/10 bg-slate-900/40 p-3">
-                      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                        <SelectField
-                          label="Alignment"
-                          value={draft.techStackAlignments?.[category] || 'left'}
-                          onChange={(value) => update((draft) => {
-                            draft.techStackAlignments = {
-                              ...(draft.techStackAlignments || {}),
-                              [category]: value as 'left' | 'center' | 'right'
-                            };
-                          })}
-                          options={alignmentOptions}
-                          hint="Card content alignment"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => update((draft) => {
-                            delete draft.techStack[category];
-                            if (draft.techStackAlignments) {
-                              delete draft.techStackAlignments[category];
-                            }
-                          })}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20"
-                        >
-                          <Trash2 size={16} />
-                          Remove
-                        </button>
+              {(draft.techStackOrder || []).map((category, index) => {
+                const technologies = draft.techStack[category];
+                if (!technologies) return null;
+                return (
+                  <div key={`tech-stack-${category}`} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <GripVertical size={18} className="text-slate-500" />
+                      <div className="flex-1 flex items-center gap-2">
+                        <p className="text-sm font-medium text-slate-300 flex-1">{category}</p>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => update((draft) => {
+                              const order = [...(draft.techStackOrder || [])];
+                              if (index > 0) {
+                                [order[index], order[index - 1]] = [order[index - 1], order[index]];
+                                draft.techStackOrder = order;
+                              }
+                            })}
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Move up"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === (draft.techStackOrder?.length || 0) - 1}
+                            onClick={() => update((draft) => {
+                              const order = [...(draft.techStackOrder || [])];
+                              if (index < order.length - 1) {
+                                [order[index], order[index + 1]] = [order[index + 1], order[index]];
+                                draft.techStackOrder = order;
+                              }
+                            })}
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Move down"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => update((draft) => {
+                          delete draft.techStack[category];
+                          draft.techStackOrder = (draft.techStackOrder || []).filter(cat => cat !== category);
+                        })}
+                        className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20"
+                      >
+                        <Trash2 size={16} />
+                        Remove
+                      </button>
+                    </div>
+                    <div>
+                      <Field
+                        label="Skills"
+                        value={techStackSkillsText.current[category] || joinLines(technologies)}
+                        onChange={(value) => {
+                          techStackSkillsText.current[category] = value;
+                          update((draft) => { draft.techStack[category] = splitLines(value); });
+                        }}
+                        multiline
+                        rows={4}
+                        hint="One skill per line"
+                      />
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <Field
-                      label="Skills"
-                      value={techStackSkillsText.current[category] || joinLines(technologies)}
-                      onChange={(value) => {
-                        techStackSkillsText.current[category] = value;
-                        update((draft) => { draft.techStack[category] = splitLines(value); });
-                      }}
-                      multiline
-                      rows={4}
-                      hint="One skill per line"
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               <button
                 type="button"
                 onClick={() => update((draft) => {
                   const baseName = 'New Category';
                   let candidate = baseName;
-                  let index = 1;
+                  let idx = 1;
                   while (candidate in draft.techStack) {
-                    candidate = `${baseName} ${index++}`;
+                    candidate = `${baseName} ${idx++}`;
                   }
                   draft.techStack[candidate] = [''];
+                  draft.techStackOrder = [...(draft.techStackOrder || []), candidate];
                 })}
                 className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/20"
               >
@@ -1146,6 +1130,33 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                   <option key={section} value={section} />
                 ))}
               </datalist>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            id="footer"
+            icon={<Mail size={20} />}
+            title="Footer"
+            description="Customize the footer content shown on the website."
+          >
+            <div className="space-y-4">
+              <Field
+                label="Copyright Text"
+                value={draft.footer.copyrightText}
+                onChange={(value) => update((draft) => { draft.footer.copyrightText = value; })}
+                placeholder="© 2025 Your Name. All rights reserved."
+              />
+              <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={draft.footer.showSocialLinks}
+                    onChange={(e) => update((draft) => { draft.footer.showSocialLinks = e.target.checked; })}
+                    className="w-4 h-4 rounded border-white/10 bg-slate-900/70 text-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  />
+                  <span className="text-sm font-medium text-slate-200">Show social media links in footer</span>
+                </label>
+              </div>
             </div>
           </SectionCard>
         </main>
