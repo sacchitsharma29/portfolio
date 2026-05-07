@@ -31,31 +31,34 @@ const TechStack: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {techCategories.map(([category, technologies], categoryIndex) => (
-            <div
-              key={category}
-              className={`bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-blue-500/50 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 ${
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-              }`}
-              style={{
-                transitionDelay: `${categoryIndex * 200}ms`
-              }}
-            >
-              <h3 className="text-xl font-semibold text-white mb-4 text-center">
-                {category}
-              </h3>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {technologies.map((tech, techIndex) => (
-                  <span
-                    key={techIndex}
-                    className="px-3 py-1 bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 rounded-full text-sm border border-blue-500/30 hover:border-blue-400 hover:from-blue-500/30 hover:to-purple-500/30 transition-all duration-300 cursor-default"
-                  >
-                    {tech}
-                  </span>
-                ))}
+          {techCategories.map(([category, technologies], categoryIndex) => {
+            const displayHeading = portfolioData.techStackHeadings?.[category] || category;
+            return (
+              <div
+                key={category}
+                className={`bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-blue-500/50 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 ${
+                  isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                }`}
+                style={{
+                  transitionDelay: `${categoryIndex * 200}ms`
+                }}
+              >
+                <h3 className="text-xl font-semibold text-white mb-4 text-center">
+                  {displayHeading}
+                </h3>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {technologies.map((tech, techIndex) => (
+                    <span
+                      key={techIndex}
+                      className="px-3 py-1 bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 rounded-full text-sm border border-blue-500/30 hover:border-blue-400 hover:from-blue-500/30 hover:to-purple-500/30 transition-all duration-300 cursor-default"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

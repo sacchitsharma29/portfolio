@@ -199,6 +199,10 @@ const normalizeData = (raw: Partial<PortfolioData> | null | undefined): Portfoli
     techStackOrder: Array.isArray(raw.techStackOrder)
       ? (raw.techStackOrder as string[])
       : base.techStackOrder,
+    techStackHeadings: {
+      ...base.techStackHeadings,
+      ...(raw.techStackHeadings || {}),
+    },
     footer: {
       ...base.footer,
       ...(raw.footer || {}),

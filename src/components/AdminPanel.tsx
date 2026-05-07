@@ -692,12 +692,13 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
               {(draft.techStackOrder || []).map((category, index) => {
                 const technologies = draft.techStack[category];
                 if (!technologies) return null;
+                const customHeading = draft.techStackHeadings?.[category] || category;
                 return (
                   <div key={`tech-stack-${category}`} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
                     <div className="flex items-center gap-3 mb-4">
                       <GripVertical size={18} className="text-slate-500" />
                       <div className="flex-1 flex items-center gap-2">
-                        <p className="text-sm font-medium text-slate-300 flex-1">{category}</p>
+                        <p className="text-xs text-slate-500 flex-shrink-0">Key: {category}</p>
                         <div className="flex gap-1">
                           <button
                             type="button"
@@ -736,6 +737,9 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                         onClick={() => update((draft) => {
                           delete draft.techStack[category];
                           draft.techStackOrder = (draft.techStackOrder || []).filter(cat => cat !== category);
+                          if (draft.techStackHeadings) {
+                            delete draft.techStackHeadings[category];
+                          }
                         })}
                         className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20"
                       >
@@ -743,7 +747,20 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                         Remove
                       </button>
                     </div>
-                    <div>
+                    <div className="space-y-3">
+                      <Field
+                        label="Heading"
+                        value={customHeading}
+                        onChange={(value) => {
+                          update((draft) => {
+                            if (!draft.techStackHeadings) {
+                              draft.techStackHeadings = {};
+                            }
+                            draft.techStackHeadings[category] = value;
+                          });
+                        }}
+                        hint="Custom display name for this category"
+                      />
                       <Field
                         label="Skills"
                         value={techStackSkillsText.current[category] || joinLines(technologies)}
@@ -770,6 +787,10 @@ const AdminPanel: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                   }
                   draft.techStack[candidate] = [''];
                   draft.techStackOrder = [...(draft.techStackOrder || []), candidate];
+                  if (!draft.techStackHeadings) {
+                    draft.techStackHeadings = {};
+                  }
+                  draft.techStackHeadings[candidate] = candidate;
                 })}
                 className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/20"
               >

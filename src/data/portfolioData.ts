@@ -48,6 +48,15 @@ export const portfolioData = {
     "Security"
   ] as string[],
 
+  techStackHeadings: {
+    "DevOps & Infrastructure": "DevOps & Infrastructure",
+    "Backend": "Backend",
+    "Frontend": "Frontend",
+    "AI & Prompt Engineering": "AI & Prompt Engineering",
+    "Databases": "Databases",
+    "Security": "Security"
+  },
+
   footer: {
     copyrightText: "© 2025 Sacchit Sharma. All rights reserved.",
     showSocialLinks: true
